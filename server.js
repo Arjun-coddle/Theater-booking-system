@@ -1,8 +1,9 @@
 const express = require('express');
 const app = express();
 app.disable('x-powered-by');
-const path = require('path');
-const connection = require('./src/database/db');
+const connection = require('./config/db');
+const page1 = require('./routes/page1.js');
+const page2 = require('./routes/page2.js');
 
 app.get('/', (req, res) => {
     connection.query('SELECT * FROM user', (err, result) => {
@@ -14,23 +15,9 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/page1', (req, res) => {
-    res.sendFile(path.join(__dirname, "src", "pages", "page1.html"), (err) => {
-        if (err) {
-            console.error('Error sending page1:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-    });
-});
+app.use('/', page1);
 
-app.get('/page2', (req, res) => {
-    res.sendFile(path.join(__dirname, "src", "pages", "page2.html"), (err) => {
-        if (err) {
-            console.error('Error sending page2:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-    });
-});
+app.use('/', page2);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
