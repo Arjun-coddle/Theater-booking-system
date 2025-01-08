@@ -1,25 +1,37 @@
 const express = require('express');
 const app = express();
 app.disable('x-powered-by');
-const connection = require('./config/db');
-const page1 = require('./routes/page1.js');
-const page2 = require('./routes/page2.js');
+const connection = require('./config/db.js');
+const createUser = require('./controler/createUser.js');
+const deleteUser = require('./controler/deleteUser.js');
+const { user } = require('./controler/getuser.js');
+const idUser = require('./controler/getUserWithId.js');
 
-app.get('/', (req, res) => {
-    connection.query('SELECT * FROM user', (err, result) => {
-        if (err) {
-            console.error('Database query error:', err);
-            return res.status(500).json({ error: 'Database query failed' });
-        }
-        res.json(result);
-    });
-});
+const updatedUser = require('./controler/updateUser.js');
 
-app.use('/', page1);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/', page2);
+// Get all users
+app.get('/user', user);
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+//Get user by id
+app.post('/user/:id', idUser);
+
+//Create user
+app.post('/create', createUser);
+
+//Update User
+app.put('/update/:id', updatedUser);
+
+//Delete user
+app.delete('/delete/:id', deleteUser);
+
+app.get('*', (req, res) => {
+    res.json("No Data Found")
+})
+
+const PORT = process.env.PORT || 3003;
+app.listen(PORT, console.log(`server running on port ${PORT}`));
+
+module.exports = { app, connection };
