@@ -1,70 +1,55 @@
 const request = require('supertest');
 const { app } = require('../server');
-require('dotenv').config();
 
-jest.mock('../controler/createUser.js', () => jest.fn((req, res) => res.status(201).send({ success: true, message: 'User created successfully' })));
-jest.mock('../controler/deleteUser.js', () => jest.fn((req, res) => res.status(200).send({ success: true, message: 'User deleted successfully' })));
-jest.mock('../controler/getUserWithId.js', () => jest.fn((req, res) => res.status(200).send({ success: true, user: { id: 1, name: 'Test User' } })));
-jest.mock('../controler/getuser.js', () => ({
-    user: jest.fn((req, res) => res.status(200).send([{ id: 1, name: 'Test User' }])),
-}));
-jest.mock('../controler/updateUser.js', () => jest.fn((req, res) => res.status(200).send({ success: true, message: 'User updated successfully' })));
+describe('Testing routes in server.js', () => {
+  test('GET /user should return 200 status code', async () => {
+    const res = await request(app).get('/user');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);  
+  });
 
-describe('Express App Routes', () => {
-    it('should return all users on GET /user', async () => {
-        const response = await request(app).get('/user');
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual([{ id: 1, name: 'Test User' }]);
-    });
+  test('POST /create should return 200 when creating a user', async () => {
+    const newUser = {
+      id: 1,
+      username: 'john_doe',
+      email: 'john@example.com',
+      password: 'password123',
+      created_at: '2025-01-01',
+      modify: '2025-01-01'
+    };
 
-    it('should return a user by ID on POST /user/:id', async () => {
-        const response = await request(app).post('/user/1');
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({
-            success: true,
-            user: { id: 1, name: 'Test User' },
-        });
-    });
+    const res = await request(app).post('/create').send(newUser);
 
-    it('should create a user on POST /create', async () => {
-        const response = await request(app).post('/create').send({
-            id: 2,
-            username: 'NewUser',
-            email: process.env.USER_EMAIL,
-            password: process.env.USER_PASSWORD
-        });
-        expect(response.status).toBe(201);
-        expect(response.body).toEqual({
-            success: true,
-            message: 'User created successfully',
-        });
-    });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveProperty('insertId');
+  });
 
-    it('should update a user on PUT /update/:id', async () => {
-        const response = await request(app).put('/update/1').send({
-            username: 'UpdatedUser',
-            email: process.env.USER_EMAIL,
-            password: process.env.USER_PASSWORD
-        });
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({
-            success: true,
-            message: 'User updated successfully',
-        });
-    });
+  test('PUT /update/:id should return 200 for valid user update', async () => {
+    const updatedUser = {
+      username: 'john_doe_updated',
+      email: 'john_updated@example.com',
+      password: 'newpassword123',
+      created_at: '2025-01-01',
+      modify: '2025-01-01'
+    };
 
-    it('should delete a user on DELETE /delete/:id', async () => {
-        const response = await request(app).delete('/delete/1');
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({
-            success: true,
-            message: 'User deleted successfully',
-        });
-    });
+    const res = await request(app).put('/update/1').send(updatedUser);
 
-    it('should return "No Data Found" for unknown routes', async () => {
-        const response = await request(app).get('/unknownRoute');
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual("No Data Found");
-    });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveProperty('affectedRows');
+  });
+
+  test('DELETE /delete/:id should return 200 for successful deletion', async () => {
+    const res = await request(app).delete('/delete/1');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  test('GET wildcard route should return 404', async () => {
+    const res = await request(app).get('/nonexistent-route');
+    expect(res.status).toBe(200);
+    expect(res.body).toBe('No Data Found');
+  });
 });

@@ -1,52 +1,56 @@
 const request = require('supertest');
 const express = require('express');
-const deleteUser = require('../controler/deleteUser');
 const app = express();
-
-app.use(deleteUser);
-
-jest.mock('../config/db', () => ({
-  query: jest.fn(),
-}));
-
 const connection = require('../config/db');
+const { deleteUser } = require('../controler/delete');
 
-describe('DELETE /delete/:id', () => {
-  it('should delete the user and return success', async () => {
-    const userId = 1;
+jest.mock('../config/db');
 
-    connection.query.mockImplementation((query, values, callback) => {
-      callback(null, { affectedRows: 1 });
-    });
+app.delete('/delete/:id', deleteUser);
 
-    const response = await request(app).delete(`/delete/${userId}`);
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data.affectedRows).toBe(1);
+test('should delete user and return success', async () => {
+  const mockResponse = { affectedRows: 1 }; 
+  connection.query.mockImplementation((query, params, callback) => {
+    callback(null, mockResponse);
   });
 
-  it('should return an error if the ID is invalid', async () => {
-    const invalidUserId = 'invalid_id';
+  const res = await request(app).delete('/delete/1'); 
 
-    const response = await request(app).delete(`/delete/${invalidUserId}`);
+  expect(res.status).toBe(200);
+  expect(res.body.success).toBe(true);
+  expect(res.body.message).toBe('User deleted successfully');
+});
 
-    expect(response.status).toBe(400);
-    expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe('Invalid ID');
+test('should return 404 if user not found', async () => {
+  const mockResponse = { affectedRows: 0 }; 
+  connection.query.mockImplementation((query, params, callback) => {
+    callback(null, mockResponse);
   });
 
-  it('should return an error if the database query fails', async () => {
-    const userId = 1;
+  const res = await request(app).delete('/delete/1');
 
-    connection.query.mockImplementation((query, values, callback) => {
-      callback(new Error('Database error'), null);
-    });
+  expect(res.status).toBe(404);
+  expect(res.body.success).toBe(false);
+  expect(res.body.message).toBe('User not found');
+});
 
-    const response = await request(app).delete(`/delete/${userId}`);
+test('should return 400 for invalid user ID', async () => {
+  const res = await request(app).delete('/delete/abc'); 
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe('An error occurred while deleting the user');
+  expect(res.status).toBe(400);
+  expect(res.body.success).toBe(false);
+  expect(res.body.message).toBe('Invalid user ID');
+});
+
+test('should return 500 if there is a database error', async () => {
+  const mockError = new Error('Database error');
+  connection.query.mockImplementation((query, params, callback) => {
+    callback(mockError, null);
   });
+
+  const res = await request(app).delete('/delete/1');
+
+  expect(res.status).toBe(500);
+  expect(res.body.success).toBe(false);
+  expect(res.body.message).toBe('An error occurred while deleting the user');
 });

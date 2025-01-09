@@ -1,55 +1,46 @@
 const request = require('supertest');
 const express = require('express');
-const idUser = require('../controler/getUserWithId'); 
 const app = express();
-
-app.use(idUser);
-
-jest.mock('../config/db', () => ({
-  query: jest.fn(),
-}));
-
 const connection = require('../config/db');
+const { idUser } = require('../controler/getUserWithId');
 
-describe('POST /user/:id', () => {
-  it('should return user data for a valid user id', async () => {
-    const userId = 1;
+jest.mock('../config/db');
 
-    connection.query.mockImplementation((query, values, callback) => {
-      if (values[0] === userId) {
-        callback(null, [{ id: 1, name: 'arun' }]);
-      }
-    });
+app.get('/user/:id', idUser);
 
-    const response = await request(app).post(`/user/${userId}`);
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([{ id: 1, name: 'arun' }]);
+test('should return user data when user is found', async () => {
+  const mockResponse = [{ id: 1, username: 'testuser', email: 'test@example.com' }];
+  connection.query.mockImplementation((query, params, callback) => {
+    callback(null, mockResponse); 
   });
 
-  it('should return an error if the database query fails', async () => {
-    const userId = 1;
+  const res = await request(app).get('/user/1'); 
 
-    connection.query.mockImplementation((query, values, callback) => {
-      callback(new Error('Database error'), null);
-    });
+  expect(res.status).toBe(200);
+  expect(res.body.success).toBe(true);
+  expect(res.body.data.username).toBe('testuser');
+});
 
-    const response = await request(app).post(`/user/${userId}`);
-
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({ error: 'Database error' });
+test('should return 404 if user is not found', async () => {
+  const mockResponse = []; 
+  connection.query.mockImplementation((query, params, callback) => {
+    callback(null, mockResponse);
   });
 
-  it('should return an empty array if no user is found', async () => {
-    const userId = 999; 
+  const res = await request(app).get('/user/999'); 
 
-    connection.query.mockImplementation((query, values, callback) => {
-      callback(null, []);
-    });
+  expect(res.status).toBe(404);
+  expect(res.body.error).toBe('User not found');
+});
 
-    const response = await request(app).post(`/user/${userId}`);
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([]);
+test('should return 500 if there is a database query error', async () => {
+  const mockError = new Error('Database query error');
+  connection.query.mockImplementationOnce((query, params, callback) => {
+    callback(mockError, null);
   });
+
+  const res = await request(app).get('/user/1');
+
+  expect(res.status).toBe(500);
+  expect(res.body.error).toBe('Failed to retrieve user from the database');
 });

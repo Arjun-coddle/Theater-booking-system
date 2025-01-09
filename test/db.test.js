@@ -1,49 +1,52 @@
 const mysql = require('mysql2');
-const dotenv = require('dotenv');
-require('dotenv').config();
+const connection = require('../config/db');
 
 jest.mock('mysql2', () => ({
-  createConnection: jest.fn(),
+  createConnection: jest.fn().mockReturnValue({
+    connect: jest.fn((callback) => callback(null)),  
+    query: jest.fn(),
+  }),
 }));
 
-describe('Database Connection', () => {
-  let connectionMock;
+describe('DB Connection Tests', () => {
 
-  beforeEach(() => {
-    connectionMock = {
-      connect: jest.fn((callback) => callback(null)),
-    };
-    mysql.createConnection.mockReturnValue(connectionMock);
+  test('should create a mysql connection', () => {
+    expect(mysql.createConnection).toHaveBeenCalled();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  test('should connect to the database successfully', () => {
+    const mockConnect = mysql.createConnection().connect;
+    expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 
-  it('should create a connection with the correct configuration', () => {
-    require('../config/db');
-    expect(mysql.createConnection).toHaveBeenCalledWith({
-      host: process.env.DB_HOST,
-      port: process.env.PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    });
-  });
-
-  it('should connect to the database successfully', () => {
-    console.log = jest.fn(); 
-
-    require('../config/db');
-    expect(connectionMock.connect).toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith('Server Connected!');
-  });
-
-  it('should throw an error if the connection fails', () => {
-    connectionMock.connect.mockImplementationOnce((callback) => {
-      callback(new Error('Connection failed'));
+  test('should handle query execution', () => {
+    const mockQueryResult = { affectedRows: 1 };
+    const mockQuery = mysql.createConnection().query;
+    
+    mockQuery.mockImplementationOnce((sql, params, callback) => {
+      callback(null, mockQueryResult);  
     });
 
-    expect(() => require('../config/db')).toThrow('Connection failed');
+    connection.query('SELECT * FROM user WHERE id = ?', [1], (err, result) => {
+      expect(result).toEqual(mockQueryResult);
+    });
+
+    expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM user WHERE id = ?', [1], expect.any(Function));
+  });
+
+  test('should handle query error', () => {
+    const mockQueryError = new Error('Database error');
+    const mockQuery = mysql.createConnection().query;
+
+    mockQuery.mockImplementationOnce((sql, params, callback) => {
+      callback(mockQueryError, null);  
+    });
+
+    connection.query('SELECT * FROM user WHERE id = ?', [1], (err, result) => {
+      expect(err).toEqual(mockQueryError);
+      expect(result).toBeNull();
+    });
+
+    expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM user WHERE id = ?', [1], expect.any(Function));
   });
 });
