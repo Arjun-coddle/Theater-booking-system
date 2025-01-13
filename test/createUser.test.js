@@ -5,7 +5,6 @@ const connection = require('../config/db');
 const { createUser } = require('../controler/createUser');
 require('dotenv').config();
 
-
 jest.mock('../config/db');
 
 app.use(express.json());
