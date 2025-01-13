@@ -78,4 +78,5 @@ describe('Middleware Authentication Tests', () => {
         expect(res.body.success).toBe(false);
         expect(res.body.message).toBe('Unauthorized');
     });
+    
 });

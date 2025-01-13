@@ -6,7 +6,7 @@ const getUser = (req, res) => {
             return res.status(500).send({
                 success: false,
                 message: 'Database error',
-                error: err,
+                error: err
             });
         }
         res.json({ success: true, data: result[0] });

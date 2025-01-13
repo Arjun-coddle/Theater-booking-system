@@ -10,11 +10,11 @@ const aviableSlots = (req, res) => {
             FROM bookedseat bs
             INNER JOIN booking b ON bs.booking_id = b.id
             WHERE bs.seat_id = seat.id
-        ) THEN FALSE
-        ELSE TRUE
-    END AS isAvailable
-FROM seat WHERE seat.screen_id = ?
-`, [screenId], (err, result) => {
+            ) THEN FALSE
+            ELSE TRUE
+            END AS isAvailable
+            FROM seat WHERE seat.screen_id = ?
+            `, [screenId], (err, result) => {
         if (err) {
             return res.status(500).send({
                 success: false,

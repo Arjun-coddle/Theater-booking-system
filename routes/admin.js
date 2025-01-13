@@ -1,6 +1,6 @@
 const express = require('express');
-const { signin } = require('../controler/admin/auth');
 const { findUsers } = require('../controler/admin/findUsers');
+const { signin } = require('../controler/admin/auth');
 const { verifyAdmin } = require('../middlewares/auth');
 const route = express.Router();
 
