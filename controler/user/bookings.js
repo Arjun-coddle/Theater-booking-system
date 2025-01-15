@@ -30,7 +30,6 @@ const slotBooking = (req, res) => {
     const { selectedSeats, showId, paymentId } = req.body;
     const userId = req.user.id;
 
-    // Step 1: Fetch selected seats
     connection.query(`SELECT * FROM seat WHERE id IN (?)`, [selectedSeats], (err, result) => {
         if (err) {
             return res.status(500).send({
@@ -40,7 +39,6 @@ const slotBooking = (req, res) => {
             });
         }
 
-        // Step 2: Check if all selected seats are available
         if (result.length !== selectedSeats.length) {
             return res.status(400).send({
                 success: false,
@@ -48,7 +46,6 @@ const slotBooking = (req, res) => {
             });
         }
 
-        // Step 3: Insert booking record
         connection.query(`INSERT INTO booking (user_id, show_id, payment_id, booking_time, modify) VALUES (?,?,?,?,?)`, [userId, showId, paymentId, new Date(), new Date()], (err, result) => {
             if (err) {
                 return res.status(500).send({
@@ -58,7 +55,6 @@ const slotBooking = (req, res) => {
                 });
             }
 
-            // Step 4: Insert booked seats
             const bookingId = result.insertId;
             const seatQueries = selectedSeats.map(seat => {
                 return new Promise((resolve, reject) => {
@@ -72,7 +68,6 @@ const slotBooking = (req, res) => {
                 });
             });
 
-            // Step 5: Wait for all seat insertions to finish
             Promise.all(seatQueries)
                 .then(() => {
                     return res.status(200).send({
