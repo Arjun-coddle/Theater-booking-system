@@ -1,1 +1,4 @@
 .scannerwork
+node_modules/
+coverage/
+
